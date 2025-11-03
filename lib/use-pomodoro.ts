@@ -40,7 +40,7 @@ export function usePomodoro() {
   const [totalTime, setTotalTime] = useState(0);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
   const [currentSession, setCurrentSession] = useState(1);
-  
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -50,7 +50,7 @@ export function usePomodoro() {
       if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
       }
-      
+
       const savedState = localStorage.getItem(STORAGE_KEY);
       if (savedState) {
         const state = JSON.parse(savedState);
@@ -67,10 +67,7 @@ export function usePomodoro() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ completedPomodoros })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ completedPomodoros }));
     }
   }, [completedPomodoros]);
 
@@ -98,21 +95,24 @@ export function usePomodoro() {
     oscillator.stop(ctx.currentTime + 0.5);
   }, []);
 
-  const sendNotification = useCallback((message: string) => {
-    if (typeof window === "undefined") return;
+  const sendNotification = useCallback(
+    (message: string) => {
+      if (typeof window === "undefined") return;
 
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Pomodoro Timer", {
-        body: message,
-        icon: "/favicon.ico",
-      });
-    }
-    playSound();
-  }, [playSound]);
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Pomodoro Timer", {
+          body: message,
+          icon: "/favicon.ico",
+        });
+      }
+      playSound();
+    },
+    [playSound]
+  );
 
   const requestNotificationPermission = useCallback(async () => {
     if (typeof window === "undefined") return;
-    
+
     if ("Notification" in window && Notification.permission === "default") {
       await Notification.requestPermission();
     }
@@ -120,24 +120,25 @@ export function usePomodoro() {
 
   const updateTitle = useCallback((time: number, currentPhase: TimerPhase) => {
     if (typeof window === "undefined") return;
-    
+
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
     const timeString = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    
+
     const phaseNames = {
       work: "🍅 Arbeit",
       "short-break": "☕ Kurze Pause",
       "long-break": "🌴 Lange Pause",
       idle: "Pomodoro Timer",
     };
-    
-    document.title = currentPhase === "idle" 
-      ? "Pomodoro Timer" 
-      : `${timeString} - ${phaseNames[currentPhase]}`;
+
+    document.title =
+      currentPhase === "idle"
+        ? "Pomodoro Timer"
+        : `${timeString} - ${phaseNames[currentPhase]}`;
   }, []);
 
-  const getNextPhase = useCallback((): TimerPhase => {
+  const getNextPhase = useCallback((): Exclude<TimerPhase, "idle"> => {
     if (phase === "work") {
       if (currentSession >= settings.sessionsUntilLongBreak) {
         return "long-break";
@@ -149,8 +150,8 @@ export function usePomodoro() {
 
   const transitionToNextPhase = useCallback(() => {
     const nextPhase = getNextPhase();
-    
-    const phaseMessages = {
+
+    const phaseMessages: Record<Exclude<TimerPhase, "idle">, string> = {
       work: "Pause vorbei! Zeit zu arbeiten! 🍅",
       "short-break": "Tolle Arbeit! Zeit für eine kurze Pause ☕",
       "long-break": "Großartig! Zeit für eine lange Pause 🌴",
@@ -169,11 +170,13 @@ export function usePomodoro() {
     }
 
     setPhase(nextPhase);
-    const duration = 
-      nextPhase === "work" ? settings.workDuration :
-      nextPhase === "short-break" ? settings.shortBreakDuration :
-      settings.longBreakDuration;
-    
+    const duration =
+      nextPhase === "work"
+        ? settings.workDuration
+        : nextPhase === "short-break"
+        ? settings.shortBreakDuration
+        : settings.longBreakDuration;
+
     setTimeLeft(duration);
     setTotalTime(duration);
   }, [phase, getNextPhase, settings, sendNotification]);
@@ -184,12 +187,12 @@ export function usePomodoro() {
         setTimeLeft((prev) => {
           const newTime = prev - 1;
           updateTitle(newTime, phase);
-          
+
           if (newTime <= 0) {
             transitionToNextPhase();
             return 0;
           }
-          
+
           return newTime;
         });
       }, 1000);
@@ -209,14 +212,14 @@ export function usePomodoro() {
 
   const start = useCallback(() => {
     requestNotificationPermission();
-    
+
     if (phase === "idle") {
       setPhase("work");
       setTimeLeft(settings.workDuration);
       setTotalTime(settings.workDuration);
       setCurrentSession(1);
     }
-    
+
     setStatus("running");
   }, [phase, settings.workDuration, requestNotificationPermission]);
 
@@ -242,9 +245,12 @@ export function usePomodoro() {
     updateTitle(0, "idle");
   }, [updateTitle]);
 
-  const updateSettings = useCallback((newSettings: Partial<PomodoroSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
-  }, []);
+  const updateSettings = useCallback(
+    (newSettings: Partial<PomodoroSettings>) => {
+      setSettings((prev) => ({ ...prev, ...newSettings }));
+    },
+    []
+  );
 
   const resetStats = useCallback(() => {
     setCompletedPomodoros(0);
@@ -267,4 +273,3 @@ export function usePomodoro() {
     resetStats,
   };
 }
-
