@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍅 Pomodoro Timer
 
-## Getting Started
+Ein moderner, schöner Pomodoro-Timer für produktives Arbeiten.
 
-First, run the development server:
+## Features
+
+- ⏱️ **25-5-25 Minuten Zyklus**: 3 Arbeitsphasen à 25 Minuten mit 5 Minuten Pausen, dann eine lange 25-minütige Pause
+- 🎨 **Moderne UI**: Aufgeräumtes Design mit subtilen Glow-Effekten
+- 🌓 **Dark/Light Mode**: Automatische Theme-Erkennung mit manuellem Toggle
+- 🔔 **Benachrichtigungen**: Browser-Notifications wenn ein Timer abläuft
+- 🔊 **Sound-Effekte**: Akustische Signale bei Phasenübergängen
+- 📊 **Session-Tracking**: Zeigt abgeschlossene Pomodoros und aktuelle Session
+- ⚙️ **Anpassbar**: Alle Timer-Dauern können in den Einstellungen angepasst werden
+- 🎯 **Browser-Titel**: Zeigt verbleibende Zeit im Browser-Tab
+
+## Tech Stack
+
+- **Next.js 16** mit App Router
+- **TypeScript**
+- **Tailwind CSS 4**
+- **shadcn/ui** Komponenten
+- **next-themes** für Dark Mode
+- **pnpm** als Package Manager
+
+## Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Entwicklung
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Öffne [http://localhost:3000](http://localhost:3000) im Browser.
 
-## Learn More
+## Build
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm build
+pnpm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Verwendung
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Klicke auf "Start", um die erste Arbeitsphase zu beginnen
+2. Der Timer läuft automatisch durch die Phasen
+3. Nutze "Pause" um den Timer anzuhalten
+4. Nutze "Überspringen" um zur nächsten Phase zu springen
+5. Passe die Timer-Dauern in den Einstellungen an (⚙️ Icon oben rechts)
+6. Wechsle zwischen Dark/Light Mode mit dem Mond/Sonne Icon
 
-## Deploy on Vercel
+## Phasen
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 🍅 **Arbeitszeit** (Standard: 25 Min) - Rot
+- ☕ **Kurze Pause** (Standard: 5 Min) - Grün
+- 🌴 **Lange Pause** (Standard: 25 Min) - Blau
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Lizenz
+
+MIT
