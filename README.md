@@ -2,6 +2,10 @@
 
 Ein moderner, schöner Pomodoro-Timer für produktives Arbeiten.
 
+## Live Demo
+
+🌐 [https://pomodoro.flarandr.de](https://pomodoro.flarandr.de)
+
 ## Features
 
 - ⏱️ **25-5-25 Minuten Zyklus**: 3 Arbeitsphasen à 25 Minuten mit 5 Minuten Pausen, dann eine lange 25-minütige Pause
