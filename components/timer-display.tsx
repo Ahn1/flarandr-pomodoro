@@ -41,12 +41,12 @@ export function TimerDisplay({ timeLeft, totalTime, phase }: TimerDisplayProps) 
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <div className="relative">
+      <div className="relative p-8">
         <svg
           width="320"
           height="320"
           viewBox="0 0 320 320"
-          className="transform -rotate-90"
+          className="transform -rotate-90 overflow-visible"
         >
           <circle
             cx="160"
