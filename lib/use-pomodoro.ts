@@ -10,6 +10,7 @@ export interface PomodoroSettings {
   shortBreakDuration: number;
   longBreakDuration: number;
   sessionsUntilLongBreak: number;
+  autoContinue: boolean;
 }
 
 export interface PomodoroState {
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   shortBreakDuration: 5 * 60,
   longBreakDuration: 25 * 60,
   sessionsUntilLongBreak: 3,
+  autoContinue: false,
 };
 
 const STORAGE_KEY = "pomodoro-state";
@@ -48,7 +50,8 @@ export function usePomodoro() {
     if (typeof window !== "undefined") {
       const savedSettings = localStorage.getItem(SETTINGS_KEY);
       if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       }
 
       const savedState = localStorage.getItem(STORAGE_KEY);
@@ -179,6 +182,12 @@ export function usePomodoro() {
 
     setTimeLeft(duration);
     setTotalTime(duration);
+
+    if (settings.autoContinue) {
+      setStatus("running");
+    } else {
+      setStatus("idle");
+    }
   }, [phase, getNextPhase, settings, sendNotification]);
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Header } from "@/components/header";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   shortBreakDuration: 5 * 60,
   longBreakDuration: 25 * 60,
   sessionsUntilLongBreak: 3,
+  autoContinue: false,
 };
 
 const SETTINGS_KEY = "pomodoro-settings";
@@ -25,7 +27,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      const parsed = JSON.parse(savedSettings);
+      setSettings({ ...DEFAULT_SETTINGS, ...parsed });
     }
   }, []);
 
@@ -143,6 +146,33 @@ export default function SettingsPage() {
                   max={10}
                   step={1}
                   className="w-full"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Verhalten</CardTitle>
+              <CardDescription>
+                Timer-Verhalten anpassen
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">
+                    Automatisch fortsetzen
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    Timer automatisch beim Übergang zum nächsten Abschnitt starten
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoContinue}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, autoContinue: checked })
+                  }
                 />
               </div>
             </CardContent>
