@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { TimerDisplay } from "@/components/timer-display";
 import { TimerControls } from "@/components/timer-controls";
 import { SessionStats } from "@/components/session-stats";
+import { DotMatrixBackground } from "@/components/dot-matrix-background";
 import { usePomodoro } from "@/lib/use-pomodoro";
 
 export default function Home() {
@@ -24,6 +25,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative">
+      <DotMatrixBackground />
       <div 
         className="ambient-glow" 
         data-phase={status === "idle" ? "idle" : phase}
