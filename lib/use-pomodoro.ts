@@ -141,9 +141,11 @@ export function usePomodoro() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const hasLoadedRef = useRef(true);
+  const isResettingRef = useRef(false);
 
   const saveState = useCallback(() => {
     if (typeof window === "undefined") return;
+    if (isResettingRef.current) return;
 
     const stateToSave: SavedState = {
       phase,
@@ -350,15 +352,20 @@ export function usePomodoro() {
   }, [phase, transitionToNextPhase]);
 
   const reset = useCallback(() => {
+    isResettingRef.current = true;
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     setStatus("idle");
     setPhase("idle");
     setTimeLeft(0);
     setTotalTime(0);
+    setCompletedPomodoros(0);
     setCurrentSession(1);
     updateTitle(0, "idle");
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    setTimeout(() => {
+      isResettingRef.current = false;
+    }, 0);
   }, [updateTitle]);
 
   const updateSettings = useCallback(
