@@ -15,7 +15,7 @@ export function DotMatrixBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dotsRef = useRef<Dot[]>([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const themeRef = useRef<string>("light");
 
   useEffect(() => {
