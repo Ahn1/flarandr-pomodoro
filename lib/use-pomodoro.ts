@@ -303,6 +303,11 @@ export function usePomodoro() {
 
   useEffect(() => {
     if (status === "running" && timeLeft > 0) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           const newTime = prev - 1;
