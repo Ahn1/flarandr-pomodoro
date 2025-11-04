@@ -34,33 +34,129 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
 const STORAGE_KEY = "pomodoro-state";
 const SETTINGS_KEY = "pomodoro-settings";
 
+interface SavedState {
+  phase: TimerPhase;
+  status: TimerStatus;
+  timeLeft: number;
+  totalTime: number;
+  completedPomodoros: number;
+  currentSession: number;
+  savedAt: number;
+}
+
+function loadInitialState() {
+  if (typeof window === "undefined") {
+    return {
+      settings: DEFAULT_SETTINGS,
+      phase: "idle" as TimerPhase,
+      status: "idle" as TimerStatus,
+      timeLeft: 0,
+      totalTime: 0,
+      completedPomodoros: 0,
+      currentSession: 1,
+    };
+  }
+
+  let settings = DEFAULT_SETTINGS;
+  const savedSettings = localStorage.getItem(SETTINGS_KEY);
+  if (savedSettings) {
+    try {
+      const parsed = JSON.parse(savedSettings);
+      settings = { ...DEFAULT_SETTINGS, ...parsed };
+    } catch (e) {
+      console.error("Failed to load settings:", e);
+    }
+  }
+
+  const savedState = localStorage.getItem(STORAGE_KEY);
+  if (!savedState) {
+    return {
+      settings,
+      phase: "idle" as TimerPhase,
+      status: "idle" as TimerStatus,
+      timeLeft: 0,
+      totalTime: 0,
+      completedPomodoros: 0,
+      currentSession: 1,
+    };
+  }
+
+  try {
+    const state: SavedState = JSON.parse(savedState);
+
+    let timeLeft = state.timeLeft || 0;
+    let status = state.status || "idle";
+
+    if (state.status === "running" && state.savedAt && state.timeLeft > 0) {
+      const elapsed = Math.floor((Date.now() - state.savedAt) / 1000);
+      const newTimeLeft = Math.max(0, state.timeLeft - elapsed);
+
+      if (newTimeLeft <= 0) {
+        timeLeft = 0;
+        status = "idle";
+      } else {
+        timeLeft = newTimeLeft;
+      }
+    }
+
+    return {
+      settings,
+      phase: state.phase || "idle",
+      status,
+      timeLeft,
+      totalTime: state.totalTime || 0,
+      completedPomodoros: state.completedPomodoros || 0,
+      currentSession: state.currentSession || 1,
+    };
+  } catch (e) {
+    console.error("Failed to load saved state:", e);
+    return {
+      settings,
+      phase: "idle" as TimerPhase,
+      status: "idle" as TimerStatus,
+      timeLeft: 0,
+      totalTime: 0,
+      completedPomodoros: 0,
+      currentSession: 1,
+    };
+  }
+}
+
 export function usePomodoro() {
-  const [settings, setSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
-  const [phase, setPhase] = useState<TimerPhase>("idle");
-  const [status, setStatus] = useState<TimerStatus>("idle");
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [totalTime, setTotalTime] = useState(0);
-  const [completedPomodoros, setCompletedPomodoros] = useState(0);
-  const [currentSession, setCurrentSession] = useState(1);
+  const initialState = loadInitialState();
+  const [settings, setSettings] = useState<PomodoroSettings>(
+    initialState.settings
+  );
+  const [phase, setPhase] = useState<TimerPhase>(initialState.phase);
+  const [status, setStatus] = useState<TimerStatus>(initialState.status);
+  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft);
+  const [totalTime, setTotalTime] = useState(initialState.totalTime);
+  const [completedPomodoros, setCompletedPomodoros] = useState(
+    initialState.completedPomodoros
+  );
+  const [currentSession, setCurrentSession] = useState(
+    initialState.currentSession
+  );
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const hasLoadedRef = useRef(true);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedSettings = localStorage.getItem(SETTINGS_KEY);
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-      }
+  const saveState = useCallback(() => {
+    if (typeof window === "undefined") return;
 
-      const savedState = localStorage.getItem(STORAGE_KEY);
-      if (savedState) {
-        const state = JSON.parse(savedState);
-        setCompletedPomodoros(state.completedPomodoros || 0);
-      }
-    }
-  }, []);
+    const stateToSave: SavedState = {
+      phase,
+      status,
+      timeLeft,
+      totalTime,
+      completedPomodoros,
+      currentSession,
+      savedAt: Date.now(),
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+  }, [phase, status, timeLeft, totalTime, completedPomodoros, currentSession]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -69,10 +165,18 @@ export function usePomodoro() {
   }, [settings]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ completedPomodoros }));
+    if (hasLoadedRef.current) {
+      saveState();
     }
-  }, [completedPomodoros]);
+  }, [
+    phase,
+    status,
+    timeLeft,
+    totalTime,
+    completedPomodoros,
+    currentSession,
+    saveState,
+  ]);
 
   const playSound = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -252,6 +356,9 @@ export function usePomodoro() {
     setTotalTime(0);
     setCurrentSession(1);
     updateTitle(0, "idle");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   }, [updateTitle]);
 
   const updateSettings = useCallback(
