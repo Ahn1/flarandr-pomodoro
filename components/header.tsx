@@ -34,6 +34,11 @@ export function Header() {
               <span className="sr-only">Settings</span>
             </Button>
           </Link>
+          <Link href="/impressum">
+            <Button variant="ghost" size="sm" className="text-xs">
+              Impressum
+            </Button>
+          </Link>
         </div>
       </div>
     </header>
