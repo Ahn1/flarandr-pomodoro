@@ -147,7 +147,7 @@ export function usePomodoro() {
     if (typeof window === "undefined") return;
     if (isResettingRef.current) return;
 
-    if (phase === "idle" && status === "idle" && timeLeft === 0) {
+    if (phase === "idle" && status === "idle") {
       localStorage.removeItem(STORAGE_KEY);
       return;
     }
@@ -357,11 +357,11 @@ export function usePomodoro() {
   }, [phase, transitionToNextPhase]);
 
   const reset = useCallback(() => {
+    isResettingRef.current = true;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    isResettingRef.current = true;
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -374,7 +374,7 @@ export function usePomodoro() {
     updateTitle(0, "idle");
     setTimeout(() => {
       isResettingRef.current = false;
-    }, 100);
+    }, 500);
   }, [updateTitle]);
 
   const updateSettings = useCallback(
