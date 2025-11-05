@@ -37,7 +37,8 @@ const SETTINGS_KEY = "pomodoro-settings";
 interface SavedState {
   phase: TimerPhase;
   status: TimerStatus;
-  timeLeft: number;
+  startTime: number | null;
+  timeRemainingAtStart: number;
   totalTime: number;
   completedPomodoros: number;
   currentSession: number;
@@ -50,7 +51,8 @@ function loadInitialState() {
       settings: DEFAULT_SETTINGS,
       phase: "idle" as TimerPhase,
       status: "idle" as TimerStatus,
-      timeLeft: 0,
+      startTime: null as number | null,
+      timeRemainingAtStart: 0,
       totalTime: 0,
       completedPomodoros: 0,
       currentSession: 1,
@@ -74,7 +76,8 @@ function loadInitialState() {
       settings,
       phase: "idle" as TimerPhase,
       status: "idle" as TimerStatus,
-      timeLeft: 0,
+      startTime: null as number | null,
+      timeRemainingAtStart: 0,
       totalTime: 0,
       completedPomodoros: 0,
       currentSession: 1,
@@ -84,26 +87,39 @@ function loadInitialState() {
   try {
     const state: SavedState = JSON.parse(savedState);
 
-    let timeLeft = state.timeLeft || 0;
+    let startTime = state.startTime;
+    let timeRemainingAtStart = state.timeRemainingAtStart || 0;
     let status = state.status || "idle";
 
-    if (state.status === "running" && state.savedAt && state.timeLeft > 0) {
-      const elapsed = Math.floor((Date.now() - state.savedAt) / 1000);
-      const newTimeLeft = Math.max(0, state.timeLeft - elapsed);
+    if (
+      state.status === "running" &&
+      state.startTime &&
+      state.timeRemainingAtStart > 0
+    ) {
+      const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+      const newTimeRemaining = Math.max(
+        0,
+        state.timeRemainingAtStart - elapsed
+      );
 
-      if (newTimeLeft <= 0) {
-        timeLeft = 0;
+      if (newTimeRemaining <= 0) {
+        timeRemainingAtStart = 0;
+        startTime = null;
         status = "idle";
       } else {
-        timeLeft = newTimeLeft;
+        startTime = Date.now();
+        timeRemainingAtStart = newTimeRemaining;
       }
+    } else if (state.status === "paused") {
+      startTime = null;
     }
 
     return {
       settings,
       phase: state.phase || "idle",
       status,
-      timeLeft,
+      startTime,
+      timeRemainingAtStart,
       totalTime: state.totalTime || 0,
       completedPomodoros: state.completedPomodoros || 0,
       currentSession: state.currentSession || 1,
@@ -114,7 +130,8 @@ function loadInitialState() {
       settings,
       phase: "idle" as TimerPhase,
       status: "idle" as TimerStatus,
-      timeLeft: 0,
+      startTime: null as number | null,
+      timeRemainingAtStart: 0,
       totalTime: 0,
       completedPomodoros: 0,
       currentSession: 1,
@@ -129,7 +146,12 @@ export function usePomodoro() {
   );
   const [phase, setPhase] = useState<TimerPhase>(initialState.phase);
   const [status, setStatus] = useState<TimerStatus>(initialState.status);
-  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft);
+  const [startTime, setStartTime] = useState<number | null>(
+    initialState.startTime
+  );
+  const [timeRemainingAtStart, setTimeRemainingAtStart] = useState(
+    initialState.timeRemainingAtStart
+  );
   const [totalTime, setTotalTime] = useState(initialState.totalTime);
   const [completedPomodoros, setCompletedPomodoros] = useState(
     initialState.completedPomodoros
@@ -143,6 +165,24 @@ export function usePomodoro() {
   const hasLoadedRef = useRef(true);
   const isResettingRef = useRef(false);
 
+  const calculateTimeLeft = useCallback((): number => {
+    if (startTime === null || status !== "running") {
+      return timeRemainingAtStart;
+    }
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    return Math.max(0, timeRemainingAtStart - elapsed);
+  }, [startTime, timeRemainingAtStart, status]);
+
+  const getInitialTimeLeft = useCallback((): number => {
+    if (initialState.startTime === null || initialState.status !== "running") {
+      return initialState.timeRemainingAtStart;
+    }
+    const elapsed = Math.floor((Date.now() - initialState.startTime) / 1000);
+    return Math.max(0, initialState.timeRemainingAtStart - elapsed);
+  }, [initialState]);
+
+  const [timeLeft, setTimeLeft] = useState(getInitialTimeLeft);
+
   const saveState = useCallback(() => {
     if (typeof window === "undefined") return;
     if (isResettingRef.current) return;
@@ -152,10 +192,12 @@ export function usePomodoro() {
       return;
     }
 
+    const currentTimeRemaining = calculateTimeLeft();
     const stateToSave: SavedState = {
       phase,
       status,
-      timeLeft,
+      startTime: status === "running" ? startTime : null,
+      timeRemainingAtStart: currentTimeRemaining,
       totalTime,
       completedPomodoros,
       currentSession,
@@ -163,7 +205,15 @@ export function usePomodoro() {
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-  }, [phase, status, timeLeft, totalTime, completedPomodoros, currentSession]);
+  }, [
+    phase,
+    status,
+    startTime,
+    calculateTimeLeft,
+    totalTime,
+    completedPomodoros,
+    currentSession,
+  ]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -178,7 +228,8 @@ export function usePomodoro() {
   }, [
     phase,
     status,
-    timeLeft,
+    startTime,
+    timeRemainingAtStart,
     totalTime,
     completedPomodoros,
     currentSession,
@@ -291,36 +342,35 @@ export function usePomodoro() {
         ? settings.shortBreakDuration
         : settings.longBreakDuration;
 
-    setTimeLeft(duration);
+    setTimeRemainingAtStart(duration);
     setTotalTime(duration);
+    setTimeLeft(duration);
 
     if (settings.autoContinue) {
+      setStartTime(Date.now());
       setStatus("running");
     } else {
+      setStartTime(null);
       setStatus("idle");
     }
   }, [phase, getNextPhase, settings, sendNotification]);
 
   useEffect(() => {
-    if (status === "running" && timeLeft > 0) {
+    if (status === "running" && startTime !== null) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
 
       intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          const newTime = prev - 1;
-          updateTitle(newTime, phase);
+        const currentTimeLeft = calculateTimeLeft();
+        setTimeLeft(currentTimeLeft);
+        updateTitle(currentTimeLeft, phase);
 
-          if (newTime <= 0) {
-            transitionToNextPhase();
-            return 0;
-          }
-
-          return newTime;
-        });
-      }, 1000);
+        if (currentTimeLeft <= 0) {
+          transitionToNextPhase();
+        }
+      }, 100);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -333,28 +383,60 @@ export function usePomodoro() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [status, timeLeft, phase, updateTitle, transitionToNextPhase]);
+  }, [
+    status,
+    startTime,
+    phase,
+    calculateTimeLeft,
+    updateTitle,
+    transitionToNextPhase,
+  ]);
+
+  useEffect(() => {
+    if (status !== "running") {
+      const currentTimeLeft = calculateTimeLeft();
+      setTimeout(() => {
+        setTimeLeft(currentTimeLeft);
+        updateTitle(currentTimeLeft, phase);
+      }, 0);
+    }
+  }, [status, calculateTimeLeft, phase, updateTitle, timeRemainingAtStart]);
 
   const start = useCallback(() => {
     requestNotificationPermission();
 
     if (phase === "idle") {
       setPhase("work");
-      setTimeLeft(settings.workDuration);
+      setTimeRemainingAtStart(settings.workDuration);
       setTotalTime(settings.workDuration);
       setCurrentSession(1);
     }
 
+    const currentTimeRemaining =
+      phase === "idle" ? settings.workDuration : calculateTimeLeft();
+    setTimeRemainingAtStart(currentTimeRemaining);
+    setStartTime(Date.now());
     setStatus("running");
-  }, [phase, settings.workDuration, requestNotificationPermission]);
+  }, [
+    phase,
+    settings.workDuration,
+    calculateTimeLeft,
+    requestNotificationPermission,
+  ]);
 
   const pause = useCallback(() => {
+    const currentTimeRemaining = calculateTimeLeft();
+    setTimeRemainingAtStart(currentTimeRemaining);
+    setStartTime(null);
     setStatus("paused");
-  }, []);
+  }, [calculateTimeLeft]);
 
   const resume = useCallback(() => {
+    const currentTimeRemaining = calculateTimeLeft();
+    setTimeRemainingAtStart(currentTimeRemaining);
+    setStartTime(Date.now());
     setStatus("running");
-  }, []);
+  }, [calculateTimeLeft]);
 
   const skip = useCallback(() => {
     if (phase === "idle") return;
@@ -372,6 +454,8 @@ export function usePomodoro() {
     }
     setStatus("idle");
     setPhase("idle");
+    setStartTime(null);
+    setTimeRemainingAtStart(0);
     setTimeLeft(0);
     setTotalTime(0);
     setCompletedPomodoros(0);
