@@ -477,6 +477,23 @@ export function usePomodoro() {
     setCompletedPomodoros(0);
   }, []);
 
+  const jumpToTime = useCallback(
+    (newTimeLeft: number) => {
+      if (phase === "idle" || newTimeLeft < 0 || newTimeLeft > totalTime) {
+        return;
+      }
+
+      const clampedTime = Math.max(0, Math.min(newTimeLeft, totalTime));
+      setTimeRemainingAtStart(clampedTime);
+      setTimeLeft(clampedTime);
+
+      if (status === "running") {
+        setStartTime(Date.now());
+      }
+    },
+    [phase, status, totalTime]
+  );
+
   return {
     phase,
     status,
@@ -492,5 +509,6 @@ export function usePomodoro() {
     reset,
     updateSettings,
     resetStats,
+    jumpToTime,
   };
 }

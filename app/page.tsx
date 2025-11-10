@@ -21,6 +21,7 @@ export default function Home() {
     resume,
     skip,
     reset,
+    jumpToTime,
   } = usePomodoro();
 
   return (
@@ -39,6 +40,8 @@ export default function Home() {
             timeLeft={timeLeft}
             totalTime={totalTime}
             phase={phase}
+            status={status}
+            onJumpToTime={jumpToTime}
           />
           
           <TimerControls
